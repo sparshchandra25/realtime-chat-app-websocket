@@ -23,3 +23,4 @@ node server.js
 
 3. Open index.html in browser
 
+4. Link for the web-app : https://realtime-chat-app-websocket.vercel.app/
