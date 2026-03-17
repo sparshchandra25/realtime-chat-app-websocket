@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Chat Stream | Real-time Chat</title>
+    <title>Web Chat Stream | Real-time Chat & Media</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
-        body { font-family: 'Inter', sans-serif; background-color: #0f172a; }
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; overflow: hidden; }
 
         .glass {
             background: rgba(30, 41, 59, 0.7);
@@ -19,6 +19,7 @@
         }
 
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         
         .message-appear { animation: slideUp 0.3s ease-out forwards; }
@@ -27,7 +28,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Typing Dots Animation */
         .typing-dot { animation: typing 1.4s infinite; }
         .typing-dot:nth-child(2) { animation-delay: 0.2s; }
         .typing-dot:nth-child(3) { animation-delay: 0.4s; }
@@ -36,21 +36,20 @@
             30% { transform: translateY(-4px); }
         }
 
-        /* Emoji Picker Styling */
         emoji-picker {
             position: absolute;
-            bottom: 80px;
-            right: 0;
+            bottom: 100px;
+            right: 20px;
             z-index: 50;
             display: none;
-            --num-columns: 6;
-            --category-emoji-size: 1.25rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+            border-radius: 1rem;
         }
     </style>
 </head>
 <body class="h-screen flex items-center justify-center p-4">
 
-    <div class="w-full max-w-5xl h-[85vh] glass rounded-3xl overflow-hidden flex shadow-2xl">
+    <div class="w-full max-w-5xl h-[90vh] glass rounded-3xl overflow-hidden flex shadow-2xl">
         
         <aside class="w-80 border-r border-white/10 hidden md:flex flex-col">
             <div class="p-6 border-b border-white/10 flex items-center gap-3">
@@ -91,7 +90,7 @@
 
             <div id="message-container" class="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar"></div>
 
-            <div id="typing-indicator" class="px-8 py-2 text-xs text-slate-400 flex items-center gap-2 opacity-0 transition-opacity">
+            <div id="typing-indicator" class="px-8 py-2 text-xs text-slate-400 flex items-center gap-2 opacity-0 transition-opacity duration-300">
                 <span id="typing-user">Someone</span> is typing
                 <div class="flex gap-1">
                     <span class="typing-dot w-1 h-1 bg-slate-400 rounded-full"></span>
@@ -104,17 +103,25 @@
                 <emoji-picker id="emoji-picker" class="light"></emoji-picker>
                 
                 <form id="chat-form" class="relative flex items-center gap-3">
-                    <div class="flex-1 relative">
+                    <div class="flex-1 relative flex items-center bg-slate-800 border border-white/10 rounded-2xl px-4 focus-within:ring-2 focus-within:ring-blue-500/50 transition-all">
+                        
+                        <label class="cursor-pointer text-slate-500 hover:text-white transition p-2">
+                            <i data-lucide="paperclip" class="w-5 h-5"></i>
+                            <input type="file" id="image-input" accept="image/*" class="hidden" />
+                        </label>
+
                         <input 
                             id="msg-input"
                             type="text" 
                             placeholder="Type a message..." 
-                            class="w-full bg-slate-800 border border-white/10 text-white rounded-2xl py-4 px-6 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder:text-slate-500"
+                            class="w-full bg-transparent text-white py-4 px-2 focus:outline-none placeholder:text-slate-500"
                         />
-                        <button id="emoji-btn" type="button" class="absolute right-4 top-4 text-slate-500 hover:text-white transition">
+                        
+                        <button id="emoji-btn" type="button" class="text-slate-500 hover:text-white transition p-2">
                             <i data-lucide="smile" class="w-5 h-5"></i>
                         </button>
                     </div>
+                    
                     <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white p-4 rounded-2xl transition shadow-lg shadow-blue-900/20 active:scale-95">
                         <i data-lucide="send" class="w-5 h-5"></i>
                     </button>
@@ -129,18 +136,19 @@
         const messageContainer = document.getElementById('message-container');
         const chatForm = document.getElementById('chat-form');
         const msgInput = document.getElementById('msg-input');
+        const imageInput = document.getElementById('image-input');
         const onlineCount = document.getElementById('online-count');
         const typingIndicator = document.getElementById('typing-indicator');
         const typingUser = document.getElementById('typing-user');
         const emojiBtn = document.getElementById('emoji-btn');
         const emojiPicker = document.getElementById('emoji-picker');
         
-        const username = prompt("Enter your name") || "Guest_" + Math.floor(Math.random() * 1000);
+        const username = prompt("Enter your name") || "User_" + Math.floor(Math.random() * 100);
         
         const ws = new WebSocket("wss://realtime-chat-app-websocket.onrender.com/");
         let typingTimeout;
 
-        // --- UI Updates ---
+        // --- WebSocket Handlers ---
         ws.onopen = () => {
             document.getElementById('status-dot').className = "w-1.5 h-1.5 bg-green-500 rounded-full";
             document.getElementById('status-text').textContent = "WebSocket Connected";
@@ -149,67 +157,90 @@
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
 
-            // 🟢 Update Member Count
             if (data.type === "users") {
                 onlineCount.textContent = `${data.count} members online`;
                 return;
             }
 
-            // 🟡 Handle Typing
             if (data.type === "typing" && data.user !== username) {
                 typingUser.textContent = data.user;
                 typingIndicator.style.opacity = "1";
-                
                 clearTimeout(typingTimeout);
-                typingTimeout = setTimeout(() => {
-                    typingIndicator.style.opacity = "0";
-                }, 2000);
+                typingTimeout = setTimeout(() => typingIndicator.style.opacity = "0", 3000);
                 return;
             }
 
-            // 🔵 Message handling
             if (data.type === "message") {
                 const isMe = data.user === username;
-                const displayName = isMe ? "You" : data.user;
-                addMessage(data.message, isMe, displayName, data.time);
+                addMessage(data.message, isMe, data.user, data.time, data.isImage);
                 typingIndicator.style.opacity = "0";
             }
         };
 
-        function addMessage(text, isMe = false, sender = "", time = "") {
+        // --- Core Functions ---
+        function addMessage(content, isMe = false, sender = "", time = "", isImage = false) {
             const displayTime = time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            // Build Message HTML
+            const messageBody = isImage 
+                ? `<img src="${content}" class="rounded-lg max-w-full max-h-64 object-cover cursor-zoom-in hover:opacity-90 transition" onclick="window.open(this.src)" onload="scrollToBottom()"/>`
+                : `<p class="text-sm leading-relaxed">${content}</p>`;
+
             const msgHtml = `
                 <div class="flex ${isMe ? 'justify-end' : 'justify-start'} message-appear">
-                    <div class="max-w-[70%]">
+                    <div class="max-w-[75%]">
                         ${!isMe ? `<p class="text-[10px] text-blue-400 ml-2 mb-1 font-bold uppercase">${sender}</p>` : ''}
-                        <div class="${isMe ? 'bg-blue-600 text-white rounded-l-2xl rounded-tr-2xl' : 'bg-slate-800 text-slate-200 rounded-r-2xl rounded-tl-2xl'} p-4 shadow-lg">
-                            <p class="text-sm leading-relaxed">${text}</p>
+                        <div class="${isMe ? 'bg-blue-600 text-white rounded-l-2xl rounded-tr-2xl shadow-blue-500/20' : 'bg-slate-800 text-slate-200 rounded-r-2xl rounded-tl-2xl'} p-3 shadow-lg">
+                            ${messageBody}
                         </div>
-                        <p class="text-[10px] text-slate-500 mt-1 ${isMe ? 'text-right' : 'text-left'} font-bold">${displayTime}</p>
+                        <p class="text-[10px] text-slate-500 mt-1 ${isMe ? 'text-right' : 'text-left'} font-bold uppercase tracking-tighter">${displayTime}</p>
                     </div>
                 </div>
             `;
+            
             messageContainer.insertAdjacentHTML('beforeend', msgHtml);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
             messageContainer.scrollTop = messageContainer.scrollHeight;
         }
 
-        // --- Events ---
+        // --- Interaction Listeners ---
         chatForm.onsubmit = (e) => {
             e.preventDefault();
             const val = msgInput.value.trim();
             if (val) {
-                ws.send(JSON.stringify({ type: "message", user: username, message: val }));
+                ws.send(JSON.stringify({ type: "message", user: username, message: val, isImage: false }));
                 msgInput.value = '';
                 emojiPicker.style.display = 'none';
             }
         };
 
-        // Emit typing event
+        // Image Selection logic
+        imageInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                ws.send(JSON.stringify({
+                    type: "message",
+                    user: username,
+                    message: event.target.result,
+                    isImage: true
+                }));
+            };
+            reader.readAsDataURL(file);
+            e.target.value = ''; // Reset input
+        };
+
+        // Emit typing status
         msgInput.addEventListener("input", () => {
             ws.send(JSON.stringify({ type: "typing", user: username }));
         });
 
-        // Emoji Logic
+        // Emoji Toggle
         emojiBtn.onclick = () => {
             emojiPicker.style.display = emojiPicker.style.display === 'block' ? 'none' : 'block';
         };
@@ -219,9 +250,9 @@
             msgInput.focus();
         });
 
-        // Initial Greeting
+        // Welcome Message
         window.onload = () => {
-            addMessage("Welcome to the Lobby! Start chatting below.", false, "System");
+            addMessage("Welcome to the Stream! You can now send messages, emojis, and images.", false, "System");
         };
     </script>
 </body>
