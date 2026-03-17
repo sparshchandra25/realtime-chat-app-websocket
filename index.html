@@ -126,7 +126,7 @@
         // --- WebSocket Logic ---
         // Change the URL to your actual WebSocket server
         // const socket = new WebSocket('ws://localhost:8080');
-       const ws = new WebSocket("ws://localhost:3000");
+       const ws = new WebSocket("wss://realtime-chat-app-websocket.onrender.com");
           ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
 
