@@ -132,15 +132,26 @@
 ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
 
-    // ❌ prevent duplicate
-    if (data.message === lastMessage && data.user === username) return;
+    // 🟢 ONLINE USERS
+    if (data.type === "users") {
+        document.querySelector(".members").textContent =
+            data.count + " members online";
+        return;
+    }
 
-    lastMessage = data.message;
+    // 🟡 TYPING
+    if (data.type === "typing") {
+        console.log(data.user + " is typing...");
+        return;
+    }
 
-    if (data.user === username) {
-        addMessage(data.message, true);
-    } else {
-        addMessage(data.user + ": " + data.message, false);
+    // 🔵 MESSAGE
+    if (data.type === "message") {
+        if (data.user === username) {
+            addMessage(data.message + " • " + data.time, true);
+        } else {
+            addMessage(data.user + ": " + data.message + " • " + data.time, false);
+        }
     }
 };
 
@@ -167,10 +178,17 @@ ws.onmessage = (event) => {
 
         if (val) {
             ws.send(JSON.stringify({
-                user: username,
-                message: val
-            }));
+        type: "message",
+        user: username,
+        message: val
+        }));
 
+        msgInput.addEventListener("input", () => {
+    ws.send(JSON.stringify({
+        type: "typing",
+        user: username
+        }));
+    });
             msgInput.value = '';
         }
     };
