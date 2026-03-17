@@ -19,13 +19,24 @@
         }
 
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         
         .message-appear { animation: slideUp 0.3s ease-out forwards; }
         @keyframes slideUp {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Skeleton Loader Styles --- */
+        .skeleton {
+            background: #1e293b;
+            background: linear-gradient(110deg, #1e293b 8%, #334155 18%, #1e293b 33%);
+            background-size: 200% 100%;
+            animation: 1.5s shine linear infinite;
+        }
+
+        @keyframes shine {
+            to { background-position-x: -200%; }
         }
 
         .typing-dot { animation: typing 1.4s infinite; }
@@ -145,23 +156,52 @@
         
         const username = prompt("Enter your name") || "User_" + Math.floor(Math.random() * 100);
         
+        // --- Skeleton Logic ---
+        function showSkeletons() {
+            const skeletonHtml = `
+                <div id="skeleton-wrapper" class="space-y-6 transition-opacity duration-500">
+                    <div class="flex justify-start items-end gap-3 opacity-40">
+                        <div class="w-8 h-8 skeleton rounded-full"></div>
+                        <div class="space-y-2"><div class="w-48 h-12 skeleton rounded-r-2xl rounded-tl-2xl"></div><div class="w-16 h-2 skeleton ml-2"></div></div>
+                    </div>
+                    <div class="flex justify-end items-end gap-3 opacity-40">
+                        <div class="space-y-2"><div class="w-64 h-16 skeleton rounded-l-2xl rounded-tr-2xl"></div><div class="w-20 h-2 skeleton ml-auto mr-2"></div></div>
+                    </div>
+                    <div class="flex justify-start items-end gap-3 opacity-40">
+                        <div class="w-8 h-8 skeleton rounded-full"></div>
+                        <div class="space-y-2"><div class="w-32 h-10 skeleton rounded-r-2xl rounded-tl-2xl"></div><div class="w-12 h-2 skeleton ml-2"></div></div>
+                    </div>
+                </div>
+            `;
+            messageContainer.innerHTML = skeletonHtml;
+        }
+
         const ws = new WebSocket("wss://realtime-chat-app-websocket.onrender.com/");
         let typingTimeout;
 
-        // --- WebSocket Handlers ---
         ws.onopen = () => {
             document.getElementById('status-dot').className = "w-1.5 h-1.5 bg-green-500 rounded-full";
             document.getElementById('status-text').textContent = "WebSocket Connected";
+            
+            // Remove skeletons once connected
+            setTimeout(() => {
+                const wrapper = document.getElementById('skeleton-wrapper');
+                if (wrapper) {
+                    wrapper.style.opacity = '0';
+                    setTimeout(() => {
+                        wrapper.remove();
+                        addMessage("Welcome to the Global Lobby!", false, "System");
+                    }, 500);
+                }
+            }, 1500);
         };
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
-
             if (data.type === "users") {
                 onlineCount.textContent = `${data.count} members online`;
                 return;
             }
-
             if (data.type === "typing" && data.user !== username) {
                 typingUser.textContent = data.user;
                 typingIndicator.style.opacity = "1";
@@ -169,7 +209,6 @@
                 typingTimeout = setTimeout(() => typingIndicator.style.opacity = "0", 3000);
                 return;
             }
-
             if (data.type === "message") {
                 const isMe = data.user === username;
                 addMessage(data.message, isMe, data.user, data.time, data.isImage);
@@ -177,13 +216,10 @@
             }
         };
 
-        // --- Core Functions ---
         function addMessage(content, isMe = false, sender = "", time = "", isImage = false) {
             const displayTime = time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            
-            // Build Message HTML
             const messageBody = isImage 
-                ? `<img src="${content}" class="rounded-lg max-w-full max-h-64 object-cover cursor-zoom-in hover:opacity-90 transition" onclick="window.open(this.src)" onload="scrollToBottom()"/>`
+                ? `<img src="${content}" class="rounded-lg max-w-full max-h-64 object-cover cursor-zoom-in" onclick="window.open(this.src)" onload="scrollToBottom()"/>`
                 : `<p class="text-sm leading-relaxed">${content}</p>`;
 
             const msgHtml = `
@@ -197,16 +233,12 @@
                     </div>
                 </div>
             `;
-            
             messageContainer.insertAdjacentHTML('beforeend', msgHtml);
             scrollToBottom();
         }
 
-        function scrollToBottom() {
-            messageContainer.scrollTop = messageContainer.scrollHeight;
-        }
+        function scrollToBottom() { messageContainer.scrollTop = messageContainer.scrollHeight; }
 
-        // --- Interaction Listeners ---
         chatForm.onsubmit = (e) => {
             e.preventDefault();
             const val = msgInput.value.trim();
@@ -217,43 +249,25 @@
             }
         };
 
-        // Image Selection logic
         imageInput.onchange = (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = (event) => {
-                ws.send(JSON.stringify({
-                    type: "message",
-                    user: username,
-                    message: event.target.result,
-                    isImage: true
-                }));
+                ws.send(JSON.stringify({ type: "message", user: username, message: event.target.result, isImage: true }));
             };
             reader.readAsDataURL(file);
-            e.target.value = ''; // Reset input
+            e.target.value = '';
         };
 
-        // Emit typing status
         msgInput.addEventListener("input", () => {
             ws.send(JSON.stringify({ type: "typing", user: username }));
         });
 
-        // Emoji Toggle
-        emojiBtn.onclick = () => {
-            emojiPicker.style.display = emojiPicker.style.display === 'block' ? 'none' : 'block';
-        };
+        emojiBtn.onclick = () => emojiPicker.style.display = emojiPicker.style.display === 'block' ? 'none' : 'block';
+        emojiPicker.addEventListener('emoji-click', e => { msgInput.value += e.detail.unicode; msgInput.focus(); });
 
-        emojiPicker.addEventListener('emoji-click', event => {
-            msgInput.value += event.detail.unicode;
-            msgInput.focus();
-        });
-
-        // Welcome Message
-        window.onload = () => {
-            addMessage("Welcome to the Stream! You can now send messages, emojis, and images.", false, "System");
-        };
+        window.onload = showSkeletons;
     </script>
 </body>
 </html>
