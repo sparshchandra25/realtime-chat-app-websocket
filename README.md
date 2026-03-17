@@ -1,6 +1,7 @@
 # 💬 Real-Time Chat App (WebSocket)
 
 A real-time chat application built using Node.js and WebSockets.
+https://realtime-chat-app-websocket.vercel.app/
 
 ## 🚀 Features
 - Real-time messaging
