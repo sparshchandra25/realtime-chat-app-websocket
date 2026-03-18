@@ -4,21 +4,27 @@ const http = require('http');
 const server = http.createServer();
 const wss = new WebSocket.Server({ server });
 
-// 🔥 store connected users
-let users = new Set();
+// 🔥 store connected users (username -> ws)
+let clients = new Map();
 
 wss.on('connection', function connection(ws) {
     console.log("New client connected");
-
-    users.add(ws);
-    broadcastUsers();
 
     ws.on('message', function incoming(message) {
         const data = JSON.parse(message);
 
         console.log('Received:', data);
 
-        // 🟢 TYPING EVENT
+        // 🟢 USER JOIN (register username)
+        if (data.type === "join") {
+            clients.set(data.user, ws);
+            ws.username = data.user;
+
+            broadcastUsers();
+            return;
+        }
+
+        // 🟡 TYPING EVENT
         if (data.type === "typing") {
             wss.clients.forEach(client => {
                 if (client !== ws && client.readyState === WebSocket.OPEN) {
@@ -28,7 +34,7 @@ wss.on('connection', function connection(ws) {
             return;
         }
 
-        // 🔵 NORMAL MESSAGE
+        // 🔵 GLOBAL MESSAGE
         if (data.type === "message") {
             wss.clients.forEach(client => {
                 if (client.readyState === WebSocket.OPEN) {
@@ -43,25 +49,60 @@ wss.on('connection', function connection(ws) {
                     }));
                 }
             });
+            return;
+        }
+
+        // 🔴 PRIVATE MESSAGE
+        if (data.type === "private") {
+            const target = clients.get(data.to);
+
+            if (target && target.readyState === WebSocket.OPEN) {
+                target.send(JSON.stringify({
+                    type: "private",
+                    from: data.from,
+                    message: data.message,
+                    time: new Date().toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })
+                }));
+            }
+
+            // also send back to sender (so they see their own msg)
+            ws.send(JSON.stringify({
+                type: "private",
+                from: data.from,
+                message: data.message,
+                time: new Date().toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })
+            }));
+
+            return;
         }
     });
 
     ws.on('close', () => {
         console.log("Client disconnected");
-        users.delete(ws);
+
+        if (ws.username) {
+            clients.delete(ws.username);
+        }
+
         broadcastUsers();
     });
 });
 
-// 🔥 send online users count
+// 🔥 send online users list (better than just count)
 function broadcastUsers() {
-    const count = users.size;
+    const userList = Array.from(clients.keys());
 
     wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify({
                 type: "users",
-                count: count
+                users: userList
             }));
         }
     });
