@@ -10,86 +10,102 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
-        body { font-family: 'Inter', sans-serif; background-color: #0f172a; overflow: hidden; }
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; overflow: hidden; margin: 0; padding: 0; }
 
+        /* Glassmorphism */
         .glass {
             background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        
-        .message-appear { animation: slideUp 0.3s ease-out forwards; }
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
+        /* Skeleton Animation */
         .skeleton {
             background: #1e293b;
             background: linear-gradient(110deg, #1e293b 8%, #334155 18%, #1e293b 33%);
             background-size: 200% 100%;
             animation: 1.5s shine linear infinite;
         }
-
         @keyframes shine { to { background-position-x: -200%; } }
 
-        emoji-picker {
-            position: absolute; bottom: 100px; right: 20px; z-index: 50;
-            display: none; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4); border-radius: 1rem;
+        /* Login Overlay Styling */
+        #login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #0f172a; /* Solid background initially to ensure visibility */
+            display: flex;
+            align-items: center;
+            justify-content:center;
+            z-index: 9999; /* Highest priority */
+            transition: all 0.5s ease;
         }
 
-        /* Login Animation */
-        .fade-out { opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
+        .hidden-app { display: none !important; }
+
+        .message-appear { animation: slideUp 0.3s ease-out forwards; }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        
+        emoji-picker {
+            position: absolute; bottom: 100px; right: 20px; z-index: 50;
+            display: none; border-radius: 1rem;
+        }
     </style>
 </head>
-<body class="h-screen flex items-center justify-center p-4 relative">
+<body class="h-screen flex items-center justify-center p-4">
 
-    <div id="login-overlay" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md transition-all duration-500">
-        <div class="glass p-10 rounded-3xl w-full max-w-md text-center shadow-2xl border border-white/10">
-            <div class="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/20">
+    <div id="login-overlay">
+        <div class="glass p-10 rounded-3xl w-full max-w-md text-center shadow-2xl mx-4">
+            <div class="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <i data-lucide="message-square" class="text-white w-10 h-10"></i>
             </div>
-            <h2 class="text-slate-400 text-sm font-semibold tracking-widest uppercase mb-2">Welcome to</h2>
+            <h2 class="text-slate-400 text-sm font-semibold tracking-widest uppercase mb-1">Welcome to</h2>
             <h1 class="text-4xl font-extrabold text-white mb-8 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">ChatTrix</h1>
             
             <div class="space-y-4">
                 <input 
                     id="username-input" 
                     type="text" 
-                    placeholder="Enter your display name..." 
+                    placeholder="Enter your name..." 
                     class="w-full bg-slate-800 border border-white/10 text-white rounded-2xl py-4 px-6 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-center"
                     maxlength="15"
+                    autofocus
                 />
                 <button 
                     id="join-btn" 
-                    class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-blue-900/40 active:scale-95"
+                    class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl transition-all shadow-lg active:scale-95"
                 >
-                    Join Global Lobby
+                    Join Lobby
                 </button>
             </div>
-            <p class="mt-6 text-slate-500 text-xs italic">Start real-time conversations instantly.</p>
         </div>
     </div>
 
-    <div id="main-app" class="w-full max-w-5xl h-[90vh] glass rounded-3xl overflow-hidden flex shadow-2xl opacity-20 transition-opacity duration-1000">
+    <div id="main-app" class="hidden-app w-full max-w-5xl h-[90vh] glass rounded-3xl overflow-hidden flex shadow-2xl">
         
         <aside class="w-80 border-r border-white/10 hidden md:flex flex-col">
             <div class="p-6 border-b border-white/10 flex items-center gap-3">
-                <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-                    <i data-lucide="message-square" class="text-white w-6 h-6"></i>
-                </div>
-                <h1 class="text-xl font-bold text-white tracking-tight">Inbox</h1>
+                <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold">CT</div>
+                <h1 class="text-xl font-bold text-white tracking-tight">ChatTrix</h1>
             </div>
-            <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
-                <div class="bg-blue-600/10 border border-blue-500/20 p-3 rounded-2xl flex items-center gap-3 cursor-pointer">
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-4">
+                <div class="bg-blue-600/10 border border-blue-500/20 p-3 rounded-2xl flex items-center gap-3">
                     <div class="relative">
                         <div class="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-blue-400 font-bold">G</div>
                         <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-slate-900 rounded-full"></div>
                     </div>
-                    <div><div class="text-sm font-medium text-white">Global Lobby</div><div id="online-count" class="text-xs text-blue-400">0 members</div></div>
+                    <div>
+                        <div class="text-sm font-medium text-white">Global Lobby</div>
+                        <div id="online-count" class="text-xs text-blue-400">Loading...</div>
+                    </div>
                 </div>
             </div>
         </aside>
@@ -98,64 +114,71 @@
             <header class="h-20 border-b border-white/10 px-8 flex items-center justify-between bg-slate-800/30">
                 <div class="flex items-center gap-4">
                     <div class="w-10 h-10 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-full"></div>
-                    <div><h3 class="text-white font-semibold">Global Lobby</h3><p class="text-xs text-slate-400"><span id="status-text">Disconnected</span></p></div>
+                    <div>
+                        <h3 class="text-white font-semibold">Global Lobby</h3>
+                        <p class="text-xs text-slate-400 font-medium" id="status-text">Connecting...</p>
+                    </div>
                 </div>
             </header>
 
             <div id="message-container" class="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar"></div>
 
             <footer class="p-6 bg-slate-900/50 relative">
-                <emoji-picker id="emoji-picker" class="light"></emoji-picker>
+                <emoji-picker id="emoji-picker"></emoji-picker>
                 <form id="chat-form" class="relative flex items-center gap-3">
                     <div class="flex-1 relative flex items-center bg-slate-800 border border-white/10 rounded-2xl px-4">
                         <label class="cursor-pointer text-slate-500 hover:text-white transition p-2">
                             <i data-lucide="paperclip" class="w-5 h-5"></i>
                             <input type="file" id="image-input" accept="image/*" class="hidden" />
                         </label>
-                        <input id="msg-input" type="text" placeholder="Type a message..." class="w-full bg-transparent text-white py-4 px-2 focus:outline-none" />
+                        <input id="msg-input" type="text" placeholder="Type a message..." class="w-full bg-transparent text-white py-4 px-2 focus:outline-none" autocomplete="off" />
                         <button id="emoji-btn" type="button" class="text-slate-500 p-2"><i data-lucide="smile" class="w-5 h-5"></i></button>
                     </div>
-                    <button type="submit" class="bg-blue-600 text-white p-4 rounded-2xl"><i data-lucide="send" class="w-5 h-5"></i></button>
+                    <button type="submit" class="bg-blue-600 text-white p-4 rounded-2xl hover:bg-blue-500 transition"><i data-lucide="send" class="w-5 h-5"></i></button>
                 </form>
             </footer>
         </main>
     </div>
 
     <script>
+        // Initialize Icons
         lucide.createIcons();
 
         const loginOverlay = document.getElementById('login-overlay');
         const mainApp = document.getElementById('main-app');
-        const usernameInput = document.getElementById('username-input');
         const joinBtn = document.getElementById('join-btn');
+        const userInp = document.getElementById('username-input');
         const messageContainer = document.getElementById('message-container');
-        const chatForm = document.getElementById('chat-form');
-        const msgInput = document.getElementById('msg-input');
         
         let username = "";
         let ws;
 
-        // --- Login Logic ---
+        // --- Handle Login ---
         joinBtn.onclick = () => {
-            const name = usernameInput.value.trim();
-            if (name) {
-                username = name;
-                loginOverlay.classList.add('fade-out');
-                mainApp.classList.replace('opacity-20', 'opacity-100');
-                initChat();
-            } else {
-                usernameInput.classList.add('ring-2', 'ring-red-500');
-                setTimeout(() => usernameInput.classList.remove('ring-2', 'ring-red-500'), 1000);
+            const val = userInp.value.trim();
+            if (val) {
+                username = val;
+                loginOverlay.style.opacity = '0';
+                setTimeout(() => {
+                    loginOverlay.style.display = 'none';
+                    mainApp.classList.remove('hidden-app');
+                    initWebSocket();
+                }, 500);
             }
         };
 
-        function initChat() {
+        // --- WebSocket & Core Logic ---
+        function initWebSocket() {
             showSkeletons();
             ws = new WebSocket("wss://realtime-chat-app-websocket.onrender.com/");
 
             ws.onopen = () => {
-                document.getElementById('status-text').innerHTML = `<span class='text-green-500 font-bold'>● Online</span>`;
-                setTimeout(removeSkeletons, 1500);
+                document.getElementById('status-text').innerHTML = `<span class="text-green-500">● Connected</span>`;
+                setTimeout(() => {
+                    const skeleton = document.getElementById('skeleton-wrapper');
+                    if(skeleton) skeleton.remove();
+                    addMessage(`Welcome to ChatTrix, ${username}!`, false, "System");
+                }, 1000);
             };
 
             ws.onmessage = (event) => {
@@ -169,32 +192,17 @@
             };
         }
 
-        // --- Core UI Functions ---
-        function showSkeletons() {
-            messageContainer.innerHTML = `
-                <div id="skeleton-wrapper" class="space-y-6">
-                    <div class="flex justify-start gap-3 opacity-40"><div class="w-8 h-8 skeleton rounded-full"></div><div class="w-48 h-12 skeleton rounded-2xl"></div></div>
-                    <div class="flex justify-end gap-3 opacity-40"><div class="w-64 h-16 skeleton rounded-2xl"></div></div>
-                </div>`;
-        }
-
-        function removeSkeletons() {
-            const wrapper = document.getElementById('skeleton-wrapper');
-            if (wrapper) wrapper.remove();
-            addMessage(`Welcome to ChatTrix, ${username}!`, false, "System");
-        }
-
         function addMessage(content, isMe = false, sender = "", time = "", isImage = false) {
             const displayTime = time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const messageBody = isImage 
-                ? `<img src="${content}" class="rounded-lg max-w-full max-h-64 object-cover" onclick="window.open(this.src)" onload="scrollToBottom()"/>`
+                ? `<img src="${content}" class="rounded-lg max-w-full max-h-64 object-cover cursor-pointer" onclick="window.open(this.src)" onload="scrollToBottom()"/>`
                 : `<p class="text-sm">${content}</p>`;
 
             const msgHtml = `
                 <div class="flex ${isMe ? 'justify-end' : 'justify-start'} message-appear">
                     <div class="max-w-[75%]">
-                        ${!isMe ? `<p class="text-[10px] text-blue-400 ml-2 mb-1 font-bold">${sender}</p>` : ''}
-                        <div class="${isMe ? 'bg-blue-600 text-white rounded-l-2xl rounded-tr-2xl' : 'bg-slate-800 text-slate-200 rounded-r-2xl rounded-tl-2xl'} p-3 shadow-lg">
+                        ${!isMe ? `<p class="text-[10px] text-blue-400 ml-2 mb-1 font-bold uppercase">${sender}</p>` : ''}
+                        <div class="${isMe ? 'bg-blue-600 text-white rounded-l-2xl rounded-tr-2xl shadow-lg shadow-blue-900/10' : 'bg-slate-800 text-slate-200 rounded-r-2xl rounded-tl-2xl shadow-lg'} p-3">
                             ${messageBody}
                         </div>
                         <p class="text-[10px] text-slate-500 mt-1 ${isMe ? 'text-right' : 'text-left'} font-bold">${displayTime}</p>
@@ -204,27 +212,48 @@
             scrollToBottom();
         }
 
+        function showSkeletons() {
+            messageContainer.innerHTML = `
+                <div id="skeleton-wrapper" class="space-y-6">
+                    <div class="flex justify-start gap-3 opacity-40"><div class="w-8 h-8 skeleton rounded-full"></div><div class="w-48 h-12 skeleton rounded-2xl"></div></div>
+                    <div class="flex justify-end gap-3 opacity-40"><div class="w-64 h-16 skeleton rounded-2xl"></div></div>
+                </div>`;
+        }
+
         function scrollToBottom() { messageContainer.scrollTop = messageContainer.scrollHeight; }
 
-        chatForm.onsubmit = (e) => {
+        document.getElementById('chat-form').onsubmit = (e) => {
             e.preventDefault();
-            if (msgInput.value.trim()) {
-                ws.send(JSON.stringify({ type: "message", user: username, message: msgInput.value.trim(), isImage: false }));
-                msgInput.value = '';
+            const msgInp = document.getElementById('msg-input');
+            if (msgInp.value.trim()) {
+                ws.send(JSON.stringify({ type: "message", user: username, message: msgInp.value.trim(), isImage: false }));
+                msgInp.value = '';
+                document.getElementById('emoji-picker').style.display = 'none';
             }
         };
 
-        // Reuse Image Upload & Emoji Logic from previous steps
+        // File/Image Logic
         document.getElementById('image-input').onchange = (e) => {
             const reader = new FileReader();
             reader.onload = (ev) => ws.send(JSON.stringify({ type: "message", user: username, message: ev.target.result, isImage: true }));
             reader.readAsDataURL(e.target.files[0]);
         };
 
+        // Emoji Toggle
         const eb = document.getElementById('emoji-btn');
         const ep = document.getElementById('emoji-picker');
-        eb.onclick = () => ep.style.display = ep.style.display === 'block' ? 'none' : 'block';
-        ep.addEventListener('emoji-click', e => { msgInput.value += e.detail.unicode; msgInput.focus(); });
+        eb.onclick = (e) => {
+            e.stopPropagation();
+            ep.style.display = ep.style.display === 'block' ? 'none' : 'block';
+        };
+        ep.addEventListener('emoji-click', e => { 
+            document.getElementById('msg-input').value += e.detail.unicode; 
+        });
+        
+        // Close emoji picker when clicking outside
+        document.addEventListener('click', () => { ep.style.display = 'none'; });
+        ep.onclick = (e) => e.stopPropagation();
+
     </script>
 </body>
 </html>
